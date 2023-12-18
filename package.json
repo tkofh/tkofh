@@ -1,0 +1,25 @@
+{
+  "name": "nuxt-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "lint": "biome check --apply-unsafe . && biome lint --apply-unsafe . && biome format --write .",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.4.1",
+    "@coily/vue": "^0.4.1",
+    "@nuxt/devtools": "latest",
+    "@webgl-tools/stage": "^0.3.0",
+    "coily": "^0.4.1",
+    "micro-math": "^0.10.0",
+    "nuxt": "^3.8.2",
+    "tickloop": "^0.5.0",
+    "vue": "^3.3.11",
+    "vue-router": "^4.2.5"
+  }
+}
