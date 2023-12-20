@@ -6,8 +6,8 @@ import fragmentShader from "~/assets/shaders/gradient.frag?raw"
 
 const config = {
   points: {
-    x: 4,
-    y: 4,
+    x: 3,
+    y: 3,
   },
   subdivisions: {
     x: 20,
@@ -194,7 +194,7 @@ export const createExperience = (canvas: HTMLCanvasElement) => {
     elements: {
       data: geometry.triangles,
       type: "UNSIGNED_SHORT",
-      mode: "LINES",
+      mode: "TRIANGLES",
     },
     vertexShader: vertexShader
       .replace("CP_GRID_X = 0", `CP_GRID_X = ${geometry.controlPointCount.x}`)
