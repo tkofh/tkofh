@@ -4,33 +4,36 @@ import type { Vector2 } from "~/types/Vector2"
 import vertexShader from "~/assets/shaders/gradient.vert?raw"
 import fragmentShader from "~/assets/shaders/gradient.frag?raw"
 
+const points = 5
+const subdivisions = 25
+
 const config = {
   points: {
-    x: 3,
-    y: 3,
+    x: points,
+    y: points - 1,
   },
   subdivisions: {
-    x: 20,
-    y: 20,
+    x: subdivisions,
+    y: subdivisions,
   },
   amplitude: {
     x: {
-      min: 0.2,
-      max: 0.5,
+      min: 0.15,
+      max: 0.4,
     },
     y: {
-      min: 0.2,
-      max: 0.5,
+      min: 0.15,
+      max: 0.4,
     },
   },
   frequency: {
     x: {
       min: 0.1,
-      max: 1,
+      max: 0.7,
     },
     y: {
       min: 0.1,
-      max: 1,
+      max: 0.7,
     },
   },
 } as const
@@ -40,6 +43,8 @@ const createGeometry = () => {
 
   const pointTValues: number[] = []
   const pointControlPointStartIndices: number[] = []
+  const pointNeighborInvertT: number[] = []
+  const pointNeighborControlPointStartIndexOffset: number[] = []
   const uvs: number[] = []
 
   const triangles: number[] = []
@@ -98,12 +103,25 @@ const createGeometry = () => {
 
   for (let y = 0; y < pointCount.y; y++) {
     for (let x = 0; x < pointCount.x; x++) {
-      const isRightEdge = x === pointCount.x - 1
       const isTopEdge = y === pointCount.y - 1
+      const isRightEdge = x === pointCount.x - 1
+      const isBottomEdge = y === 0
+      const isLeftEdge = x === 0
 
-      pointTValues.push(
-        isRightEdge ? 1 : (x % (1 + config.subdivisions.x)) * tScalar.x,
-        isTopEdge ? 1 : (y % (1 + config.subdivisions.y)) * tScalar.y,
+      const tX = isRightEdge ? 1 : (x % (1 + config.subdivisions.x)) * tScalar.x
+      const tY = isTopEdge ? 1 : (y % (1 + config.subdivisions.y)) * tScalar.y
+
+      pointTValues.push(tX, tY)
+
+      pointNeighborInvertT.push(
+        isRightEdge ? -1 : 1,
+        isTopEdge ? -1 : 1,
+        isLeftEdge ? -1 : 1,
+        isBottomEdge ? -1 : 1,
+      )
+      pointNeighborControlPointStartIndexOffset.push(
+        tX === 0 && !isLeftEdge ? -1 : 0,
+        tY === 0 && !isBottomEdge ? -pointCount.x : 0,
       )
 
       const cpX = Math.floor(x * tScalar.x) - (isRightEdge ? 1 : 0)
@@ -127,10 +145,16 @@ const createGeometry = () => {
     controlPointCount,
     pointCount,
 
+    tScalar,
+
     controlPointPositions: new Float32Array(controlPointPositions),
     pointTValues: new Float32Array(pointTValues),
     pointControlPointStartIndices: new Float32Array(
       pointControlPointStartIndices,
+    ),
+    pointNeighborInvertT: new Float32Array(pointNeighborInvertT),
+    pointNeighborControlPointStartIndexOffset: new Float32Array(
+      pointNeighborControlPointStartIndexOffset,
     ),
     controlPointAmplitudes: new Float32Array(controlPointAmplitudes),
     controlPointFrequencies: new Float32Array(controlPointFrequencies),
@@ -172,6 +196,16 @@ export const createExperience = (canvas: HTMLCanvasElement) => {
         size: 2,
         usage: "STATIC_DRAW",
       },
+      // a_neighbor_invert_t: {
+      //   data: geometry.pointNeighborInvertT,
+      //   size: 4,
+      //   usage: "STATIC_DRAW",
+      // },
+      // a_neighbor_cp_start_offset: {
+      //   data: geometry.pointNeighborControlPointStartIndexOffset,
+      //   size: 2,
+      //   usage: "STATIC_DRAW",
+      // },
     },
     uniforms: {
       u_cp_positions: {
@@ -190,6 +224,10 @@ export const createExperience = (canvas: HTMLCanvasElement) => {
         data: new Float32Array([0]),
         type: "float",
       },
+      u_t_scalar: {
+        data: new Float32Array([geometry.tScalar.x, geometry.tScalar.y]),
+        type: "vec2",
+      },
     },
     elements: {
       data: geometry.triangles,
@@ -198,7 +236,9 @@ export const createExperience = (canvas: HTMLCanvasElement) => {
     },
     vertexShader: vertexShader
       .replace("CP_GRID_X = 0", `CP_GRID_X = ${geometry.controlPointCount.x}`)
-      .replace("CP_GRID_Y = 0", `CP_GRID_Y = ${geometry.controlPointCount.y}`),
+      .replace("CP_GRID_Y = 0", `CP_GRID_Y = ${geometry.controlPointCount.y}`)
+      .replace("POINT_GRID_X = 0", `POINT_GRID_X = ${geometry.pointCount.x}`)
+      .replace("POINT_GRID_Y = 0", `POINT_GRID_Y = ${geometry.pointCount.y}`),
     fragmentShader: fragmentShader,
   })
 
